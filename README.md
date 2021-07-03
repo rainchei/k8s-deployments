@@ -1,6 +1,5 @@
 # k8s-deployments
 
-## Introduction
 A place for DevOps to easily deploy necessary applications to any K8s cluster.
 All deployment should be implemented using [helm]. However, if it is not applicable, 
 one should at least write a README.md. So other team members could easily follow up.
