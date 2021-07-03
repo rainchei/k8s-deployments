@@ -1,0 +1,10 @@
+apiVersion: v2
+name: aws-persistent-storage
+description: Provide easy to operate persistent storage wt/ AWS EFS service.
+type: application
+version: 0.1.0
+dependencies:
+- name: aws-efs-csi-driver
+  version: "1.1.*"
+  repository: https://kubernetes-sigs.github.io/aws-efs-csi-driver/
+  condition: aws-efs-csi-driver.enabled

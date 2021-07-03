@@ -1,0 +1,10 @@
+apiVersion: v2
+name: aws-cluster-autoscaler
+description: Provide easy to operate cluster-autoscaler wt/ AWS ASG service.
+type: application
+version: 0.1.0
+dependencies:
+- name: cluster-autoscaler
+  version: "9.6.*"
+  repository: https://kubernetes.github.io/autoscaler
+  condition: autoscaler.enabled

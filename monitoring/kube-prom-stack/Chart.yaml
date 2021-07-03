@@ -1,0 +1,10 @@
+apiVersion: v2
+name: kube-prom-stack
+description: Provide easy to operate end-to-end K8s cluster monitoring.
+type: application
+version: 0.1.0
+dependencies:
+- name: kube-prometheus-stack
+  version: "13.2.*"
+  repository: https://prometheus-community.github.io/helm-charts
+  condition: kube-prometheus-stack.enabled

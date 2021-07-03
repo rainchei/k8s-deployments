@@ -1,0 +1,15 @@
+cluster-autoscaler:
+  enabled: true
+  cloudProvider: aws
+  awsRegion: us-west-2
+  autoDiscovery:
+    clusterName: kube-example-com
+  rbac:
+    serviceAccount:
+      annotations: 
+        eks.amazonaws.com/role-arn: arn:aws:iam::xxx:role/AmazonEKSClusterAutoscalerRole
+  podAnnotations:
+    cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+  extraArgs:
+    balance-similar-node-groups: true
+    skip-nodes-with-system-pods: false

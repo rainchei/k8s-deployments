@@ -1,0 +1,18 @@
+{{- if .Values.sgngx.external.hpa.enabled }}
+{{- $name := .Values.sgngx.external.name -}}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "example-apps-stack.labels" . | nindent 4 }}
+    run: {{ $name }}
+spec:
+  maxReplicas: {{ .Values.sgngx.external.hpa.maxReplicas }}
+  minReplicas: {{ .Values.sgngx.external.hpa.minReplicas }}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $name }}
+  targetCPUUtilizationPercentage: {{ .Values.sgngx.external.hpa.targetCPUUtilizationPercentage }}
+{{- end }}

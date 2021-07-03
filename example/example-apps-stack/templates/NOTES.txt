@@ -1,0 +1,12 @@
+##############################################################
+Congrats! The deployment for {{ .Release.Name }} is completed.
+{{- if or (.Values.ingress.internal.enabled) (.Values.ingress.external.enabled) }}
+Check if you could access the following URL:
+{{- range $host := .Values.ingress.internal.hosts }}
+  https://{{ $host.host }}
+{{- end }}
+{{- range $host := .Values.ingress.external.hosts }}
+  https://{{ $host.host }}
+{{- end }}
+{{- end }}
+##############################################################

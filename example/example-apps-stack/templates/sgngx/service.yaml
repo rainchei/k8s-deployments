@@ -1,0 +1,18 @@
+{{- if .Values.sgngx.external.service.enabled }}
+{{- $name := .Values.sgngx.external.name -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "example-apps-stack.labels" . | nindent 4 }}
+    run: {{ $name }}
+spec:
+  type: ClusterIP
+  {{- with .Values.sgngx.external.service.ports }}
+  ports:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    run: {{ $name }}
+{{- end }}

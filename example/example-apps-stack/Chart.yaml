@@ -1,0 +1,10 @@
+apiVersion: v2
+name: example-apps-stack
+description: Provide easy to operate all-in-one app deployments.
+type: application
+version: 0.1.0
+dependencies:
+- name: testlink
+  version: "9.2.*"
+  repository: https://charts.bitnami.com/bitnami
+  condition: testlink.enabled

@@ -1,0 +1,54 @@
+{{- if .Values.sgngx.external.enabled }}
+{{- $name := .Values.sgngx.external.name -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "example-apps-stack.labels" . | nindent 4 }}
+    run: {{ $name }}
+spec:
+  {{- if not .Values.sgngx.external.hpa.enabled }}
+  replicas: {{ .Values.sgngx.external.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      run: {{ $name }}
+  template:
+    metadata:
+      labels:
+        run: {{ $name }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                 - key: run
+                   operator: In
+                   values:
+                   - {{ $name }}
+              topologyKey: kubernetes.io/hostname
+      imagePullSecrets:
+        - name: {{ .Values.dockerHub.secret.name }}
+      containers:
+        - name: {{ $name }}
+          image: "{{ .Values.sgngx.external.image.repository }}:{{ .Values.sgngx.external.image.tag }}"
+          imagePullPolicy: Always
+          resources:
+            {{- toYaml .Values.sgngx.external.resources | nindent 12 }}
+          {{- with .Values.sgngx.external.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.sgngx.external.ports }}
+          ports:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.sgngx.external.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.sgngx.external.readinessProbe | nindent 12 }}
+{{- end }}

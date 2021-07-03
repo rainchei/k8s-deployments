@@ -1,0 +1,5 @@
+# Default values for aws-persistent-storage.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+aws-efs-csi-driver:
+  enabled: true

@@ -1,0 +1,54 @@
+{{- if .Values.githubRunner.prox2.enabled }}
+{{- $name := .Values.githubRunner.prox2.name -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "example-apps-stack.labels" . | nindent 4 }}
+    run: {{ $name }}
+spec:
+  replicas: {{ .Values.githubRunner.prox2.replicaCount }}
+  selector:
+    matchLabels:
+      run: {{ $name }}
+  template:
+    metadata:
+      labels:
+        run: {{ $name }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                 - key: run
+                   operator: In
+                   values:
+                   - {{ $name }}
+              topologyKey: kubernetes.io/hostname
+      volumes:
+        - name: dind-storage
+          emptyDir: {}
+      imagePullSecrets:
+        - name: {{ .Values.dockerHub.secret.name }}
+      containers:
+        - name: {{ $name }}
+          image: "{{ .Values.githubRunner.prox2.image.repository }}:{{ .Values.githubRunner.prox2.image.tag }}"
+          imagePullPolicy: Always
+          resources:
+            {{- toYaml .Values.githubRunner.prox2.resources | nindent 12 }}
+          {{- with .Values.githubRunner.prox2.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        - name: dind
+          image: docker:18.05-dind
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: dind-storage
+              mountPath: /var/lib/docker
+{{- end }}

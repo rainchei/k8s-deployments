@@ -1,0 +1,25 @@
+{{- if .Values.ingress.external.enabled -}}
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: {{ include "example-apps-stack.fullname" . }}-external
+  labels:
+    {{- include "example-apps-stack.labels" . | nindent 4 }}
+  {{- with .Values.ingress.external.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  rules:
+    {{- range .Values.ingress.external.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            backend:
+              serviceName: {{ .backend.serviceName }}
+              servicePort: {{ .backend.servicePort }}
+          {{- end }}
+    {{- end }}
+{{- end }}

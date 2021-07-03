@@ -1,0 +1,134 @@
+# Default values for kube-prom-stack.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+prometheusVolume:
+  enabled: true
+  name: prom
+  volumeHandle: fs-xxx:/prod/monitoring/prom
+
+kube-prometheus-stack:
+  enabled: true
+  nameOverride: kube-prom-stack
+  prometheus:
+    prometheusSpec:
+      externalUrl: https://prometheus.example.com
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            selector:
+              matchLabels:
+                app: prom
+            storageClassName: efs
+            accessModes:
+              - ReadWriteMany
+            resources:
+              requests:
+                storage: 5Gi
+      retention: 30d
+    service:
+      annotations:
+        alb.ingress.kubernetes.io/healthcheck-path: /-/ready
+  grafana:
+    grafana.ini:
+      server:
+        domain: grafana.example.com
+        root_url: 'https://%(domain)s/'
+      auth.google:
+        enabled: true
+        client_id: xxxyyy
+        client_secret: xxxyyy
+        scopes: https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email
+        auth_url: https://accounts.google.com/o/oauth2/auth
+        token_url: https://accounts.google.com/o/oauth2/token
+        allowed_domains: example.com
+        allow_sign_up: true
+    service:
+      annotations:
+        alb.ingress.kubernetes.io/healthcheck-path: /api/health
+  kubeControllerManager:
+    enabled: false
+  kubeScheduler:
+    enabled: false
+  alertmanager:
+    config:
+      global:
+        resolve_timeout: 5m
+      route:
+        group_by: ['job']
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 12h
+        routes:
+        - match:
+            alertname: Watchdog
+          receiver: 'null'
+        - match:
+            severity: warning
+          receiver: 'slack-alert-devops'
+          continue: true
+        - match:
+            severity: critical
+          receiver: 'slack-oncall-devops'
+          continue: true
+      receivers:
+      - name: 'null'
+      - name: 'slack-warning'
+        slack_configs:
+        - channel: '#warning'
+          api_url: 'https://hooks.slack.com/services/foobar'
+          send_resolved: true
+          title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] kube-example-com'
+          title_link: 'https://prometheus.example.com/alerts'
+          text: '{{ template "slack.default.text" . }}'
+      - name: 'slack-critical'
+        slack_configs:
+        - channel: '#critical'
+          api_url: 'https://hooks.slack.com/services/foobar'
+          send_resolved: true
+          title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] kube-example-com'
+          title_link: 'https://prometheus.example.com/alerts'
+          text: '{{ template "slack.default.text" . }}'
+    templateFiles:
+      default.tmpl: |-
+        {{ define "slack.default.text" }}
+        {{ range .Alerts }}
+        *Alert:* {{ .Annotations.summary }} - `{{ .Labels.severity }}`
+        *Description:* {{ .Annotations.description }}
+        *Graph:* <{{ .GeneratorURL }}|:chart_with_upwards_trend:> *Runbook:* <{{ .Annotations.runbook_url }}|:spiral_note_pad:>
+        *Details:*
+          {{ range .Labels.SortedPairs }} • *{{ .Name }}:* `{{ .Value }}`
+          {{ end }}
+        {{ end }}
+        {{ end }}
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/inbound-cidrs: x.x.x.x/32, y.y.y.y/32
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:xxx:certificate/xxx-yyy-zzz
+    alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+    alb.ingress.kubernetes.io/tags: Environment=example,Team=devops
+  hosts:
+    - host: grafana.example.com
+      paths:
+        - path: /*
+          backend: &ssl-redirect
+            serviceName: ssl-redirect
+            servicePort: use-annotation
+        - path: /*
+          backend:
+            serviceName: kube-prom-stack-grafana
+            servicePort: 80
+    - host: prometheus.example.com
+      paths:
+        - path: /*
+          backend: *ssl-redirect
+        - path: /*
+          backend:
+            serviceName: kube-prom-stack-prometheus
+            servicePort: 9090
